@@ -304,7 +304,7 @@ body {
   font-weight: 600;
 }
 
-.sniper-reasoning {
+.audit-reasoning {
   margin: 1rem 0;
   padding: 1rem;
   background: rgba(189, 0, 255, 0.05);
@@ -365,12 +365,12 @@ body {
   text-shadow: 0 0 15px rgba(255, 42, 109, 0.4);
 }
 
-.snip-actions {
+.remediation-actions {
   display: flex;
   gap: 0.75rem;
 }
 
-.snip-button {
+.remediation-button {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   color: var(--text-secondary);
@@ -383,7 +383,7 @@ body {
   justify-content: center;
 }
 
-.snip-button:hover {
+.remediation-button:hover {
   background: var(--neon-blue);
   color: var(--bg-deep);
   border-color: var(--neon-blue);
@@ -399,8 +399,8 @@ body {
   margin-bottom: 0.25rem;
 }
 
-/* Sniper Log Terminal */
-.sniper-log {
+/* Audit Log Terminal */
+.audit-log {
   position: fixed;
   bottom: 0;
   left: 50%;
@@ -503,7 +503,7 @@ body {
   .app-container {
     padding: 2rem 1rem 8rem 1rem;
   }
-  .sniper-log {
+  .audit-log {
     width: 95%;
   }
 }

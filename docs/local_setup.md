@@ -49,7 +49,7 @@ To run CloudCull without *any* of the above credentials:
 ```bash
 uv run cloudcull --simulated --dry-run
 ```
-This will generate a high-fidelity mock report.
+This will generate a simulated report.
 
 ## Secure Dashboard
 

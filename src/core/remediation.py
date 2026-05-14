@@ -16,7 +16,7 @@ class TerraformRemediator:
     }
 
     def generate_plan(self, zombied_instances: List[Dict]) -> Dict:
-        logger.info("Generating 'Investor-Grade' IaC Remediation Plan...")
+        logger.info("Generating IaC remediation plan...")
         
         timestamp = datetime.datetime.now(datetime.UTC).isoformat()
         
@@ -98,7 +98,7 @@ class TerraformRemediator:
         import os
         import shutil
 
-        logger.info("🛡️ Executing ActiveOps Remediation via Secure Subprocess...")
+        logger.info("Executing ActiveOps remediation via subprocess...")
         
         # 0. Safety: Backup Terraform State if it exists
         state_file = "terraform.tfstate"
@@ -106,11 +106,11 @@ class TerraformRemediator:
             backup_file = f"{state_file}.backup.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
             try:
                 shutil.copy2(state_file, backup_file)
-                logger.info(f"💾 Safety Backup Created: {backup_file}")
+                logger.info(f"Safety backup created: {backup_file}")
             except Exception as e:
-                logger.error(f"⚠️ Failed to create safety backup: {e}. Proceeding with caution.")
+                logger.error(f"Failed to create safety backup: {e}. Proceeding with caution.")
         else:
-            logger.info("ℹ️ No local terraform.tfstate found. Skipping backup.")
+            logger.info("No local terraform.tfstate found. Skipping backup.")
 
         # Validation Pattern for Instance IDs
         SAFE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9\-]+$")
@@ -124,7 +124,7 @@ class TerraformRemediator:
             
             # 1. Strict Input Validation
             if not SAFE_ID_PATTERN.match(resource_id):
-                logger.error("❌ SECURITY ALERT: Invalid Resource ID '%s' detected. Skipping.", resource_id)
+                logger.error("SECURITY ALERT: Invalid Resource ID '%s' detected. Skipping.", resource_id)
                 fail_count += 1
                 continue
 
@@ -142,24 +142,24 @@ class TerraformRemediator:
                 # Fallback: Try the naive guess only if lookup failed (maybe state is partial)
                 # But actually, if it's not in state, 'state rm' will definitely fail.
                 # We'll log it as a failure to sync.
-                logger.error(f"❌ State Sync Failed: Could not find resource with ID {resource_id} in Terraform state.")
+                logger.error(f"State sync failed: could not find resource with ID {resource_id} in Terraform state.")
                 fail_count += 1
                 continue
 
             cmd = ["terraform", "state", "rm", target_address]
 
             try:
-                logger.info("⚡ Sniping %s...", target_address)
+                logger.info("Removing Terraform state address %s...", target_address)
                 subprocess.run(cmd, check=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # nosec
                 success_count += 1
             except subprocess.CalledProcessError as e:
-                logger.error("❌ Terraform Execution Failed for %s: %s", resource_id, e.stderr.decode().strip())
+                logger.error("Terraform execution failed for %s: %s", resource_id, e.stderr.decode().strip())
                 fail_count += 1
             except FileNotFoundError:
-                logger.critical("❌ Terraform binary not found! Ensuring 'terraform' is in PATH.")
+                logger.critical("Terraform binary not found. Ensure 'terraform' is in PATH.")
                 return
 
-        logger.info("✅ ActiveOps Complete. Success: %d, Failed: %d", success_count, fail_count)
+        logger.info("ActiveOps complete. Success: %d, Failed: %d", success_count, fail_count)
 
     def check_terraform_binary(self) -> bool:
         """Active validation of the environment for the Service Provider tool."""

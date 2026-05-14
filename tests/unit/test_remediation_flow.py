@@ -109,3 +109,22 @@ def test_execute_active_ops_handles_adapter_not_found(mock_context):
         # In our implementation, if success_count == 0, it aborts.
         ctx['aws'].stop_instance.assert_not_called()
         mock_remediator.execute_remediation_plan.assert_not_called()
+
+def test_execute_active_ops_skips_when_dry_run(mock_context):
+    ctx = mock_context
+
+    zombies = [{
+        'id': 'i-123',
+        'platform': 'AWS',
+        'metadata': {},
+        'metrics': {}
+    }]
+
+    with patch('src.main.TerraformRemediator') as mock_remediator_class:
+        mock_remediator = mock_remediator_class.return_value
+        runner = CloudCullRunner(simulated=True, dry_run=True)
+
+        runner.execute_active_ops(zombies)
+
+        ctx['aws'].stop_instance.assert_not_called()
+        mock_remediator.execute_remediation_plan.assert_not_called()

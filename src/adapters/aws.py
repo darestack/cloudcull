@@ -221,8 +221,8 @@ class AWSAdapter(AbstractAdapter):
         return targets
 
     def stop_instance(self, instance_id: str, metadata: Dict[str, Any] = None):
-        """Executes the kill-switch."""
-        logger.warning("Executing Kill-Switch on AWS instance %s...", instance_id)
+        """Stops the selected instance."""
+        logger.warning("Executing stop on AWS instance %s...", instance_id)
         if self.simulated:
             logger.info("[SIMULATED] Stopped AWS instance %s", instance_id)
             return

@@ -79,7 +79,7 @@ def test_main_entrypoint_with_zombies(mock_adapters, mock_brain):
         report.recommendation.reasoning = "Idle"
         mock_brain.classify_instance.return_value = report
         
-        with patch('builtins.print'):
+        with patch('builtins.print'), patch('src.core.remediation.TerraformRemediator.save_manifest'):
             main()
     
     aws.scan.assert_called()

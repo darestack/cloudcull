@@ -1,9 +1,9 @@
 [project]
 name = "cloudcull"
 version = "0.1.0"
-description = "CloudCull: The Autonomous Multi-Cloud GPU Sniper Agent"
+description = "CLI-first cloud cost audit prototype with provider adapters and remediation planning"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.33",
     "azure-mgmt-compute>=31.0.0",

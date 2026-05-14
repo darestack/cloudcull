@@ -19,7 +19,7 @@ class OpenAIProvider(BaseLLM):
         logger.info("GPT-4 analyzing instance %s...", metadata.get('id', 'unknown'))
         
         system_msg = """
-        You are a Cloud Infrastructure Sniper. Analyze instance state and decide if it is a 'ZOMBIE' (idle waste) or 'ACTIVE'.
+        You are a cloud infrastructure cost auditor. Analyze instance state and decide if it is a 'ZOMBIE' (idle waste candidate) or 'ACTIVE'.
         
         RULES:
         1. If Max CPU is < 2% and Network is < 0.1MB, classify as ZOMBIE.

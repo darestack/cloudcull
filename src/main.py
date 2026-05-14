@@ -42,9 +42,9 @@ try:
         
     # Rotate logs: Max 10MB, keep 5 backups
     file_handler = RotatingFileHandler(
-        os.path.join(log_dir, "sniper.log"), 
-        mode='a', 
-        maxBytes=10*1024*1024, 
+        os.path.join(log_dir, "audit.log"),
+        mode='a',
+        maxBytes=10*1024*1024,
         backupCount=5
     )
     file_handler.setFormatter(log_formatter)
@@ -124,7 +124,7 @@ class CloudCullRunner:
         self.remediator = TerraformRemediator()
         self.brain = LLMFactory.get_provider(model, simulated=simulated)
         
-        logger.info("CloudCull initialized with machine intelligence: %s%s", 
+        logger.info("CloudCull initialized with analysis provider: %s%s",
                     model.upper(), " (SIMULATED)" if simulated else "")
         
         if not simulated:
@@ -132,7 +132,7 @@ class CloudCullRunner:
 
     def _preflight_check(self):
         """Ensures minimal environmental readiness to prevent late-stage failures."""
-        logger.info("🧪 Running Pre-flight Health Checks...")
+        logger.info("Running pre-flight health checks...")
         errors = []
         
         # 1. Test LLM Connectivity
@@ -176,7 +176,7 @@ class CloudCullRunner:
             logger.error("No healthy cloud adapters remaining. Exiting.")
             sys.exit(1)
             
-        logger.info("✅ Pre-flight checks passed. Launching sniper.")
+        logger.info("Pre-flight checks passed. Starting audit runner.")
 
     def run_audit(self, renderer: ConsoleRenderer = None) -> List[Dict]:
         """The core execution loop."""
@@ -245,14 +245,18 @@ class CloudCullRunner:
 
     def execute_active_ops(self, zombies: List[Dict]):
         """
-        The Production Kill-Switch:
-        1. Issues Cloud-Native STOP commands to the actual instances.
-        2. Removes the resources from Terraform state.
+        Active remediation flow:
+        1. Issues cloud-native stop/deallocate commands to selected instances.
+        2. Removes the resources from Terraform state when a state address is found.
         """
+        if self.dry_run:
+            logger.warning("ActiveOps skipped because dry-run is enabled. Re-run with --no-dry-run after review to execute.")
+            return
+
         if not zombies:
             return
 
-        logger.info("🛡️  INITIATING ACTIVEOPS: Neutralizing %d zombies...", len(zombies))
+        logger.info("ACTIVEOPS: attempting remediation for %d candidates...", len(zombies))
         
         # 1. Cloud-Native Stop (Physical Remediation)
         # We group zombies by platform to use the correct adapter
@@ -263,7 +267,7 @@ class CloudCullRunner:
                 # Find the matching adapter
                 adapter = AdapterRegistry.get_adapter_by_platform(platform, self.discovery.adapters[0].region, self.simulated)
                 if adapter:
-                    logger.info("⚡ Stopping %s instance %s...", platform, z['id'])
+                    logger.info("Stopping %s instance %s...", platform, z['id'])
                     adapter.stop_instance(z['id'], z['metadata'])
                     success_count += 1
                 else:
@@ -275,7 +279,7 @@ class CloudCullRunner:
         if success_count > 0:
             plan = self.remediator.generate_plan(zombies)
             self.remediator.execute_remediation_plan(plan)
-            logger.info("✅ ActiveOps Physical & State remediation complete.")
+            logger.info("ActiveOps physical and state remediation complete.")
         else:
             logger.warning("ActiveOps aborted: No instances were successfully stopped in the cloud.")
 
@@ -298,14 +302,14 @@ class CloudCullRunner:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CloudCull: The Autonomous Multi-Cloud GPU Sniper")
+    parser = argparse.ArgumentParser(description="CloudCull: CLI-first cloud cost audit prototype")
     parser.add_argument("--region", default=settings.aws_region, help="Cloud region to scan")
     parser.add_argument("--dry-run", action="store_true", default=True, help="Simulate without action")
-    parser.add_argument("--no-dry-run", action="store_false", dest="dry_run", help="Enable production kill-switch")
+    parser.add_argument("--no-dry-run", action="store_false", dest="dry_run", help="Allow active operations when combined with --active-ops")
     parser.add_argument("--simulated", action="store_true", help="Run in mock mode without cloud credentials")
     parser.add_argument("--model", default=settings.llm_provider, choices=["anthropic", "openai", "google", "groq", "claude", "gemini", "llama"], help="AI Model for analysis")
-    parser.add_argument("--active-ops", action="store_true", help="Generate and execute remediation bundle")
-    parser.add_argument("--auto-approve", action="store_true", help="Bypass manual confirmation prompts (Use with CAUTION)")
+    parser.add_argument("--active-ops", action="store_true", help="Execute stop/state remediation after confirmation")
+    parser.add_argument("--auto-approve", action="store_true", help="Bypass confirmation prompts; use only in reviewed test environments")
     parser.add_argument("--output", help="Path to save JSON report")
     parser.add_argument("--workers", type=int, default=10, help="Parallel worker count")
     
@@ -338,19 +342,23 @@ def main():
         runner.remediator.save_manifest(plan)
         
         if args.active_ops:
-            logger.info("📡 ACTIVEOPS TRIGGERED: Executing Remediation Plan...")
+            if args.dry_run:
+                logger.warning("ActiveOps requested but dry-run is enabled. Re-run with --active-ops --no-dry-run after review to execute.")
+                return
+
+            logger.info("ACTIVEOPS requested: executing remediation plan after approval checks...")
             
             if not args.auto_approve:
                 confirm = input(f"CRITICAL: Execute automated remediation for {len(zombies)} targets? [y/N]: ")
                 if confirm.lower() != 'y':
-                    logger.info("❌ ActiveOps aborted by operator.")
+                    logger.info("ActiveOps aborted by operator.")
                     return
 
             try:
-                # SECURE EXECUTION: Cloud Stop + State RM
+                # Active execution: cloud stop/deallocate plus Terraform state removal.
                 runner.execute_active_ops(zombies)
             except Exception as e:
-                logger.error("❌ ACTIVEOPS FAILED: %s", e)
+                logger.error("ACTIVEOPS FAILED: %s", e)
 
     if args.output:
         with open(args.output, "w", encoding='utf-8') as f:

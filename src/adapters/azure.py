@@ -130,8 +130,8 @@ class AzureAdapter(AbstractAdapter):
         return targets
 
     def stop_instance(self, instance_id: str, metadata: Dict[str, Any]):
-        """Hardened Kill-Switch: Extracts RG from full Resource ID."""
-        logger.warning("Executing Kill-Switch on Azure VM %s...", instance_id)
+        """Stops the selected VM after extracting the resource group from its full resource ID."""
+        logger.warning("Executing stop on Azure VM %s...", instance_id)
         
         if self.simulated:
             logger.info("[SIMULATED] Deallocated Azure VM %s", instance_id)
@@ -139,7 +139,7 @@ class AzureAdapter(AbstractAdapter):
 
         resource_id = metadata.get('resource_id')
         if not resource_id:
-            logger.error("Azure kill-switch failed: record missing resource_id metadata")
+            logger.error("Azure stop failed: record missing resource_id metadata")
             return
 
         try:
@@ -154,9 +154,9 @@ class AzureAdapter(AbstractAdapter):
                 self.compute_client.virtual_machines.begin_deallocate(resource_group, instance_id)
                 logger.info("Deallocation triggered for %s in %s", instance_id, resource_group)
             else:
-                logger.error("Azure kill-switch failed: Resource ID format unexpected: %s", resource_id)
+                logger.error("Azure stop failed: Resource ID format unexpected: %s", resource_id)
         except Exception as e:
-            logger.error("Azure kill-switch failed for %s: %s", instance_id, e)
+            logger.error("Azure stop failed for %s: %s", instance_id, e)
 
     def verify_connection(self) -> bool:
         """Actively validates Azure credentials by listing subscriptions."""

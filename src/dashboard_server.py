@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 # Configuration
 PORT = 8080
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dashboard/dist")
-LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs/sniper.log")
+LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs/audit.log")
 REPORT_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report.json")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [DashboardServer] - %(message)s')

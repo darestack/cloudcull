@@ -12,7 +12,7 @@ def test_dashboard_loads_successfully(page: Page):
     page.goto("http://localhost:8080")
 
     # 2. Check Title
-    expect(page).to_have_title(re.compile("CloudCull Sniper Console"))
+    expect(page).to_have_title(re.compile("CloudCull Audit Dashboard"))
 
     # 3. Verify Logo/Title Presence
     logo = page.locator(".brand-logo")
@@ -24,11 +24,11 @@ def test_dashboard_loads_successfully(page: Page):
     diagram = page.locator(".mermaid-wrapper")
     expect(diagram).to_be_visible(timeout=15000)
 
-    # 5. Verify Sniper Log Terminal
-    terminal = page.locator(".sniper-log")
+    # 5. Verify Audit Log Terminal
+    terminal = page.locator(".audit-log")
     expect(terminal).to_be_visible()
     # Check for terminal header text
-    expect(terminal).to_contain_text("SNIPER_CONSOLE")
+    expect(terminal).to_contain_text("AUDIT_LOG")
 
 @pytest.mark.e2e
 def test_active_ops_button_state(page: Page):
@@ -37,9 +37,8 @@ def test_active_ops_button_state(page: Page):
     """
     page.goto("http://localhost:8080")
     
-    # Check for the "Kill Switch" or action buttons if they exist
-    # Based on previous context, we have "One-Tap Snip"
+    # Check for active operation or remediation copy buttons if they exist.
     
     # Just generic check for now as we didn't inspect the full UI source strictly for buttons
-    # but we know the 'Sniper Console' text is there.
+    # but the smoke test above covers the main dashboard contract.
     pass

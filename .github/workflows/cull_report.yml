@@ -1,4 +1,4 @@
-name: CloudCull Autonomous Audit
+name: CloudCull Audit
 
 on:
   push:

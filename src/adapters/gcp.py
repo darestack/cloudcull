@@ -88,7 +88,7 @@ class GCPAdapter(AbstractAdapter):
 
     def get_attribution(self, instance_id: str, **kwargs) -> str:
         """
-        Governance Layer: Production-Ready logging for identity mapping.
+        Governance Layer: best-effort logging for identity mapping.
         """
         if self.simulated or not self.logging_client:
             return "gcp_service_principal"
@@ -188,21 +188,21 @@ class GCPAdapter(AbstractAdapter):
         return targets
 
     def stop_instance(self, instance_id: str, metadata: Dict[str, Any]):
-        logger.warning("Executing Kill-Switch on GCP instance %s...", instance_id)
+        logger.warning("Executing stop on GCP instance %s...", instance_id)
         if self.simulated:
             logger.info("[SIMULATED] Stopped GCP instance %s", instance_id)
             return
 
         zone = metadata.get('zone')
         if not zone:
-            logger.error("GCP kill-switch failed: record missing zone metadata")
+            logger.error("GCP stop failed: record missing zone metadata")
             return
 
         try:
             self.instances_client.stop(project=self.project_id, zone=zone, instance=instance_id)
             logger.info("Stop triggered for %s in %s", instance_id, zone)
         except Exception as e:
-            logger.error("GCP kill-switch failed for %s: %s", instance_id, e)
+            logger.error("GCP stop failed for %s: %s", instance_id, e)
 
     def verify_connection(self) -> bool:
         """Actively validates GCP credentials by fetching project metadata."""

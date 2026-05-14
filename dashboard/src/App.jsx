@@ -93,7 +93,7 @@ const Gauge = ({ value, max = 100, label }) => {
   );
 };
 
-const SniperLog = ({ instances }) => {
+const AuditLog = ({ instances }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [rawLogs, setRawLogs] = useState([]);
   const scrollRef = useRef(null);
@@ -101,23 +101,37 @@ const SniperLog = ({ instances }) => {
 
   // Real Log Fetcher
   useEffect(() => {
+    const parseLogs = (text) => {
+      if (!text) return;
+      const lines = text.split('\n')
+        .filter(l => l.trim())
+        .map(line => {
+          const match = line.match(/^([\d-]+\s[\d:,]+)\s-\s\[CloudCull\]\s-\s(\w+)\s-\s(.+)$/);
+          if (match) {
+            return { time: match[1].split(' ')[1], tag: match[2], msg: match[3] };
+          }
+          return { time: '--:--:--', tag: 'INFO', msg: line };
+        });
+      setRawLogs(lines);
+    };
+
     const fetchLogs = () => {
-      fetch(`${basePath}/sniper.log`)
-        .then(res => res.text())
-        .then(text => {
-          if (!text) return;
-          const lines = text.split('\n')
-            .filter(l => l.trim())
-            .map(line => {
-              const match = line.match(/^([\d-]+\s[\d:,]+)\s-\s\[CloudCull\]\s-\s(\w+)\s-\s(.+)$/);
-              if (match) {
-                return { time: match[1].split(' ')[1], tag: match[2], msg: match[3] };
-              }
-              return { time: '--:--:--', tag: 'INFO', msg: line };
-            });
-          setRawLogs(lines);
+      const staticLogPath = `${basePath}/audit.log`;
+      fetch('/api/logs')
+        .then(res => {
+          if (!res.ok) throw new Error(`API logs unavailable: ${res.status}`);
+          return res.text();
         })
-        .catch(() => {}); // Silent fail for logs
+        .then(parseLogs)
+        .catch(() => {
+          fetch(staticLogPath)
+            .then(res => {
+              if (!res.ok) throw new Error(`Static logs unavailable: ${res.status}`);
+              return res.text();
+            })
+            .then(parseLogs)
+            .catch(() => {}); // Logs are optional in static mode.
+        });
     };
 
     fetchLogs();
@@ -129,12 +143,12 @@ const SniperLog = ({ instances }) => {
     if (rawLogs.length > 0) return rawLogs;
     if (instances.length > 0) {
       const baseLogs = [
-        { time: new Date().toLocaleTimeString(), tag: "SYSTEM", msg: "CloudCull Engine initialized..." },
-        { time: new Date().toLocaleTimeString(), tag: "PROBE",  msg: "Scanning AWS/Azure/GCP clusters..." },
+        { time: new Date().toLocaleTimeString(), tag: "SYSTEM", msg: "CloudCull audit initialized..." },
+        { time: new Date().toLocaleTimeString(), tag: "PROBE",  msg: "Scanning configured providers..." },
       ];
       const instanceLogs = instances.map(inst => ({
         time: new Date().toLocaleTimeString(),
-        tag: "SNIPER",
+        tag: "AUDIT",
         msg: `Target ${inst.id.substring(0, 10)}... classified as ${inst.status}`
       }));
       return [...baseLogs, ...instanceLogs];
@@ -149,10 +163,10 @@ const SniperLog = ({ instances }) => {
   }, [displayLogs]);
 
   return (
-    <div className="sniper-log" style={{ height: isOpen ? 'auto' : '40px' }}>
+    <div className="audit-log" style={{ height: isOpen ? 'auto' : '40px' }}>
       <div className="terminal-header" onClick={() => setIsOpen(!isOpen)}>
         <div className="terminal-title">
-          <TerminalIcon size={14} /> SNIPER_CONSOLE_v1.07.EXE
+          <TerminalIcon size={14} /> AUDIT_LOG
         </div>
         {isOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
       </div>
@@ -184,18 +198,20 @@ function App() {
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
-  const sniperChart = useMemo(() => `
+  const auditChart = useMemo(() => `
     graph LR
       Probe[Probe: SDKs] --> Analyze[Analyze: AI]
       Analyze --> Decision{Decision}
-      Decision -- "Zombie" --> Cull[Action: Cull]
+      Decision -- "Review candidate" --> Plan[Manifest]
       Decision -- "Healthy" --> Monitor[Monitor]
-      Cull --> Sync[Report: Stats]
+      Plan --> Review[Human Review]
+      Review --> Sync[Report: Stats]
       Monitor --> Sync
       style Probe fill:transparent,stroke:#00f2fe,color:#fff
       style Analyze fill:transparent,stroke:#bd00ff,color:#fff
       style Decision fill:transparent,stroke:#f7b731,color:#fff
-      style Cull fill:transparent,stroke:#ff2a6d,color:#fff
+      style Plan fill:transparent,stroke:#ff2a6d,color:#fff
+      style Review fill:transparent,stroke:#f7b731,color:#fff
       style Monitor fill:transparent,stroke:#05f874,color:#fff
       style Sync fill:transparent,stroke:#00f2fe,color:#fff
   `, []);
@@ -285,7 +301,7 @@ function App() {
             </div>
             <div className="header-status">
               <span className="status-dot"></span> 
-              <Activity size={14} className="pulse-icon" /> SNIPER ACTIVE
+              <Activity size={14} className="pulse-icon" /> AUDIT READY
             </div>
           </div>
         </header>
@@ -305,7 +321,7 @@ function App() {
             </div>
           </motion.div>
 
-          <Gauge value={Math.round((data.summary.zombie_count / (data.instances.length || 1)) * 100)} label="Waste Efficiency" />
+          <Gauge value={Math.round((data.summary.zombie_count / (data.instances.length || 1)) * 100)} label="Review Rate" />
 
           <motion.div 
             className="hero-card stat-card"
@@ -313,24 +329,24 @@ function App() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <div className="hero-label"><TrendingUp size={16} /> PERFORMANCE IMPACT</div>
-            <div className="hero-value">99.8%</div>
-            <div className="hero-label">SYSTEM LATENCY: 12ms</div>
+            <div className="hero-label"><TrendingUp size={16} /> ACTIVE OPS</div>
+            <div className="hero-value">OFF</div>
+            <div className="hero-label">DRY-RUN REVIEW DEFAULT</div>
           </motion.div>
         </div>
 
         <section className="topology-container">
           <div className="topology-header">
             <Cpu size={18} color="#00f2fe" />
-            <h3>AUTONOMOUS SNIPER TOPOLOGY</h3>
+            <h3>AUDIT FLOW</h3>
           </div>
-          <Mermaid chart={sniperChart} />
+          <Mermaid chart={auditChart} />
         </section>
 
         <section className="cards-section">
           <div className="section-title">
-            <h2><Zap size={18} /> TARGETS ACQUIRED</h2>
-            <div className="anomaly-count">{data.instances.length} ANOMALIES DETECTED</div>
+            <h2><Zap size={18} /> AUDIT RESULTS</h2>
+            <div className="anomaly-count">{data.instances.length} RESOURCES REVIEWED</div>
           </div>
           
           <div className="anomaly-grid">
@@ -356,7 +372,7 @@ function App() {
                   </div>
 
                   {inst.reasoning && (
-                    <div className="sniper-reasoning">
+                    <div className="audit-reasoning">
                       <BrainCircuit size={14} style={{ marginBottom: '0.5rem', color: 'var(--neon-purple)' }} />
                       <div>{inst.reasoning}</div>
                     </div>
@@ -393,12 +409,12 @@ function App() {
                       <span className="owner-tag">LAUNCHED BY @{inst.owner}</span>
                       <span className="waste-amount">${(inst.rate * 24 * 30).toLocaleString()}</span>
                     </div>
-                    <div className="snip-actions">
+                    <div className="remediation-actions">
                       {inst.iac_command && (
                         <button 
-                          id={`snip-button-${inst.id}`}
-                          className="snip-button" 
-                          title="Copy Kill Command"
+                          id={`remediation-button-${inst.id}`}
+                          className="remediation-button"
+                          title="Copy remediation command"
                           onClick={() => copyCommand(inst.iac_command, inst.id)}
                         >
                           {copiedId === inst.id ? <ShieldCheck size={18} color="#05f874" /> : <Copy size={18} />}
@@ -413,7 +429,7 @@ function App() {
           </div>
         </section>
       </motion.div>
-      <SniperLog instances={data.instances} />
+      <AuditLog instances={data.instances} />
     </div>
   );
 }

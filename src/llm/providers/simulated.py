@@ -32,7 +32,7 @@ class SimulatedProvider(BaseLLM):
         )
         
         return LLMResponse(
-            raw_response="Simulated high-fidelity AI success.",
+            raw_response="Simulated analysis success.",
             recommendation=recommendation,
             usage={"prompt_tokens": 120, "completion_tokens": 45},
             model=self.model
